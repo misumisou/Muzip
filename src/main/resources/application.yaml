@@ -1,0 +1,36 @@
+# 공통(모든 프로필) 설정. DB 접속 정보 등 환경별 값은 application-{profile}.yaml에서 정의
+server:
+  port: 8080 # 서버 구동 포트
+
+spring:
+  application:
+    name: muzip
+  config:
+    import: optional:classpath:application-local.yaml
+
+  h2:
+    console:
+      enabled: true # H2 콘솔 사용 여부
+      path: /h2-console # H2 콘솔 접속 경로
+
+  sql:
+    init:
+      mode: never # 매번 실행 시 schema.sql / data.sql 자동 실행
+
+  thymeleaf:
+    cache: false # 개발 중 수정 반영을 위해 false 설정
+
+mybatis:
+    # 매퍼 파일 위치 지정
+    mapper-locations: classpath:mapper/**/*.xml
+    # 간결화
+    type-aliases-package: com.example.muzip.domain
+    # 카멜 케이스 자동 매핑
+    configuration:
+      map-underscore-to-camel-case : true
+
+# 로그에서 sql 쿼리 확인
+logging:
+    level:
+      com.example.muzip: trace
+

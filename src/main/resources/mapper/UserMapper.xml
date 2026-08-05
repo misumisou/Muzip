@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 유저(users) 테이블 쿼리 -->
+<mapper namespace="com.example.muzip.mapper.UserMapper">
+
+    <!-- 아이디로 유저 조회 -->
+    <select id="findUserByUsername" parameterType="String" resultType="User">
+        select * from users
+        where username=#{username}
+    </select>
+
+    <!-- 닉네임으로 유저 조회 -->
+    <select id="findUserByNickname" parameterType="String" resultType="User">
+        select * from users
+        where nickname=#{nickname}
+    </select>
+
+    <!-- 유저 저장 -->
+    <insert id="saveUser" parameterType="User">
+        INSERT INTO users (username, password, nickname, role)
+        VALUES (#{username}, #{password}, #{nickname}, #{role})
+    </insert>
+
+    <!-- 회원 탈퇴 -->
+    <delete id="deleteUser" parameterType="Integer">
+        delete from users where user_id=#{userId}
+    </delete>
+
+    <!-- 닉네임 수정 -->
+    <update id="updateNickname" parameterType="User">
+        UPDATE users set nickname = #{nickname}
+        where user_id=#{userId}
+    </update>
+
+</mapper>

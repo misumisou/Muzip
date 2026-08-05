@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "muzip-server",
+      "runtimeExecutable": "C:\\Users\\it\\Desktop\\work\\spring boot\\music-project\\Muzip\\gradlew.bat",
+      "runtimeArgs": ["bootRun", "--args=--server.port=8090"],
+      "port": 8090
+    }
+  ]
+}

@@ -1,0 +1,1232 @@
+<!-- 메인 페이지: 곡 검색/재생 미리보기 + 보관함 + 최근 게시글을 한 화면에서 제공 -->
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Muzip</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+          rel="stylesheet">
+    <style>
+        :root {
+            --bg-top: #7ec8f2;
+            --bg-bottom: #d6f3e6;
+            --surface: rgba(255, 255, 255, 0.28);
+            --surface-strong: rgba(255, 255, 255, 0.42);
+            --border: rgba(255, 255, 255, 0.55);
+            --ink: #0b3456;
+            --ink-muted: #4d7292;
+            --cyan: #00aaff;
+            --blue: #00d4ff;
+            --heart: #ff2f92;
+            --heart-off: #cfe3ee;
+            --aero-shadow: 0 10px 35px rgba(0, 60, 120, 0.25);
+            --aero-inner-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.65);
+            --aero-highlight: rgba(255, 255, 255, 0.75);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            background:
+                    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 55%),
+                    linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+            color: var(--ink);
+            font-family: 'Noto Sans KR', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .ambient {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.45;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .ambient-a {
+            width: 460px;
+            height: 460px;
+            background: var(--cyan);
+            top: -180px;
+            left: -120px;
+        }
+
+        .ambient-b {
+            width: 380px;
+            height: 380px;
+            background: #39d353;
+            bottom: -160px;
+            right: -100px;
+        }
+
+        nav.topnav {
+            position: sticky;
+            top: 16px;
+            z-index: 10;
+            max-width: 1180px;
+            margin: 16px auto 0;
+            padding: 0 20px;
+        }
+
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border);
+            border-top: 1.5px solid var(--aero-highlight);
+            border-radius: 24px;
+            padding: 12px 22px;
+            box-shadow: var(--aero-shadow), var(--aero-inner-shadow);
+        }
+
+        .nav-logo {
+            font-family: 'Baloo 2', sans-serif;
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--ink);
+            letter-spacing: -0.5px;
+            text-decoration: none;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7), 0 0 10px rgba(0, 170, 255, 0.25);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--ink-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            border-radius: 14px;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            background: rgba(0, 170, 255, 0.18);
+            color: var(--ink);
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: var(--ink-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            font-family: 'Noto Sans KR', sans-serif;
+            padding: 8px 16px;
+            border-radius: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5);
+        }
+
+        .nav-btn:hover {
+            background: rgba(0, 170, 255, 0.22);
+            color: var(--ink);
+            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.7), 0 0 8px rgba(0, 170, 255, 0.25);
+        }
+
+
+        main {
+            position: relative;
+            z-index: 1;
+            max-width: 1180px;
+            margin: 36px auto 100px;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+            grid-template-rows: auto 1fr;
+            gap: 26px;
+        }
+
+        @media (max-width: 860px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .player-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            max-width: 380px;
+            width: 100%;
+            grid-column: 1;
+            grid-row: 1 / 3;
+        }
+
+        .player-card {
+            background: var(--surface-strong);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border);
+            border-top: 1.5px solid var(--aero-highlight);
+            border-left: 1.5px solid var(--aero-highlight);
+            border-radius: 28px;
+            padding: 26px;
+            box-shadow: var(--aero-shadow), var(--aero-inner-shadow);
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .art-wrap {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 22px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #bfe7ff, #d3f7e6);
+            margin-bottom: 18px;
+            box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.6);
+        }
+
+        .art-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .heart-btn {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0, 60, 120, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.7);
+            transition: transform 0.15s ease;
+        }
+
+        .heart-btn:hover {
+            transform: scale(1.08);
+        }
+
+        @keyframes heartPop {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        .heart-btn.is-saved {
+            animation: heartPop 0.35s ease;
+        }
+
+        .heart-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .heart-btn.is-saved svg {
+            fill: var(--heart);
+            stroke: var(--heart);
+        }
+
+        .heart-btn:not(.is-saved) svg {
+            fill: none;
+            stroke: var(--heart-off);
+            stroke-width: 2;
+        }
+
+        .now-title {
+            font-weight: 700;
+            font-size: 1.15rem;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+        }
+
+        .now-artist {
+            color: var(--ink-muted);
+            font-size: 0.9rem;
+            margin-bottom: 18px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .fake-progress {
+            width: 100%;
+            height: 5px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.35);
+            overflow: hidden;
+            margin-bottom: 8px;
+            box-shadow: inset 0 1px 2px rgba(0, 60, 120, 0.15);
+        }
+
+        .fake-progress-fill {
+            width: 38%;
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--cyan), var(--blue));
+            box-shadow: 0 0 8px rgba(0, 170, 255, 0.5);
+        }
+
+        .fake-time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            color: var(--ink-muted);
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .play-btn {
+            flex-shrink: 0;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1px solid #005588;
+            border-top: 1.5px solid #a3e8ff;
+            background: linear-gradient(to bottom, #4cd3ff 0%, #0088cc 50%, #0066aa 100%);
+            color: #fff;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 10px rgba(0, 100, 200, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+        }
+
+        .play-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.45;
+            filter: grayscale(0.6);
+        }
+
+        .fake-progress { flex: 1; cursor: pointer; }
+
+        .player-empty {
+            text-align: center;
+            padding: 40px 10px;
+            color: var(--ink-muted);
+            font-size: 0.88rem;
+        }
+
+        .library-box {
+            background: var(--surface);
+            backdrop-filter: blur(18px) saturate(180%);
+            -webkit-backdrop-filter: blur(18px) saturate(180%);
+            border: 1px solid var(--border);
+            border-top: 1.5px solid var(--aero-highlight);
+            border-radius: 22px;
+            padding: 16px;
+            min-width: 0;
+            overflow: hidden;
+            box-shadow: var(--aero-shadow), var(--aero-inner-shadow);
+        }
+
+        .library-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--ink-muted);
+            letter-spacing: 0.3px;
+            margin-bottom: 10px;
+            padding-left: 4px;
+        }
+
+        .library-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .library-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+
+        .library-item:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .library-item img {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            object-fit: cover;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0, 60, 120, 0.2);
+        }
+
+        .library-item-text {
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .library-item-title {
+            font-size: 0.86rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .library-item-artist {
+            font-size: 0.76rem;
+            color: var(--ink-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .library-empty {
+            color: var(--ink-muted);
+            font-size: 0.82rem;
+            padding: 10px 4px;
+        }
+
+        .search-panel {
+            grid-column: 2;
+            grid-row: 1;
+            min-width: 0;
+        }
+
+        .post-panel {
+            grid-column: 2;
+            grid-row: 2;
+            min-width: 0;
+        }
+
+        .search-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 18px;
+            min-width: 0;
+        }
+
+        .search-select {
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 0 14px;
+            color: var(--ink);
+            font-family: 'Noto Sans KR', sans-serif;
+            font-weight: 600;
+            font-size: 0.88rem;
+            outline: none;
+            cursor: pointer;
+            flex-shrink: 0;
+            box-shadow: inset 0 1px 2px rgba(0, 60, 120, 0.08);
+        }
+
+        /* 검색 input 너비 조정
+           - 기본 상태: flex-basis 200px로 고정 (좁게 표시)
+           - is-expanded 클래스 부여 시 flex:1로 확장 (포커스 상태)
+           - transition으로 늘어나고 줄어드는 애니메이션 처리 */
+        .search-input {
+            flex: 1 1 140px;
+            min-width: 140px;
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px 18px;
+            color: var(--ink);
+            font-size: 0.92rem;
+            outline: none;
+            transition: border-color 0.2s ease, background 0.2s ease;
+            box-shadow: inset 0 1px 2px rgba(0, 60, 120, 0.08);
+        }
+
+        .search-input:focus {
+            border-color: var(--cyan);
+            background: rgba(255, 255, 255, 0.65);
+            box-shadow: inset 0 1px 2px rgba(0, 60, 120, 0.08), 0 0 8px rgba(0, 170, 255, 0.3);
+        }
+
+        .search-btn {
+            border: 1px solid #005588;
+            border-top: 1.5px solid #a3e8ff;
+            cursor: pointer;
+            padding: 0 24px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            color: #fff;
+            background: linear-gradient(to bottom, #4cd3ff 0%, #0088cc 50%, #0066aa 100%);
+            border-radius: 14px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 15px rgba(0, 100, 200, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+            text-shadow: 0 -1px 1px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s ease, box-shadow 0.2s ease;
+        }
+
+        .search-btn:hover {
+            background: linear-gradient(to bottom, #60dbff 0%, #0099dd 50%, #0077bb 100%);
+            box-shadow: 0 6px 20px rgba(0, 100, 200, 0.45), 0 0 10px rgba(0, 240, 255, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+        }
+
+        .search-btn:active {
+            transform: scale(0.98);
+        }
+
+        .result-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 640px;
+            overflow-y: auto;
+            min-width: 0;
+        }
+
+        .result-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.15s ease;
+            min-width: 0;
+        }
+
+        .result-row:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .result-row img {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            object-fit: cover;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0, 60, 120, 0.2);
+        }
+
+        .result-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .result-title {
+            font-weight: 600;
+            font-size: 0.94rem;
+            line-height: 1.4;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+
+        }
+
+        .result-artist {
+            font-size: 0.8rem;
+            color: var(--ink-muted);
+            white-space: nowrap;
+            line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .result-heart {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+        }
+
+        .result-heart svg {
+            width: 19px;
+            height: 19px;
+            fill: none;
+            stroke: var(--heart-off);
+            stroke-width: 2;
+            transition: stroke 0.15s ease;
+        }
+
+        .result-heart:hover svg {
+            stroke: var(--heart);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--ink-muted);
+            padding: 40px 0;
+            font-size: 0.88rem;
+        }
+
+        .footer {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 30px 20px 10px;
+            color: var(--ink-muted);
+            font-size: 0.8rem;
+        }
+        .footer-notes {
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+
+        .footer-notes span {
+            display: inline-block;
+            animation: bounce 1.6s ease-in-out infinite;
+            filter: drop-shadow(0 3px 6px rgba(0, 60, 120, 0.25));
+        }
+
+        .footer-notes span:nth-child(2) { animation-delay: 0.2s; }
+        .footer-notes span:nth-child(3) { animation-delay: 0.4s; }
+        .footer-notes span:nth-child(4) { animation-delay: 0.6s; }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        #floatLayer {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .float-obj {
+            position: absolute;
+            opacity: 0.7;
+            filter: drop-shadow(0 6px 14px rgba(0, 60, 120, 0.2));
+            animation: floatDrift linear infinite;
+            will-change: transform;
+        }
+        @keyframes floatDrift {
+            0%   { transform: translate(0, 0) rotate(0deg); }
+            25%  { transform: translate(12px, -18px) rotate(4deg); }
+            50%  { transform: translate(-8px, -30px) rotate(-3deg); }
+            75%  { transform: translate(-16px, -10px) rotate(3deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+
+        @media (max-width: 860px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+
+            .player-panel {
+                display: flex;
+                flex-direction: column;
+                gap: 18px;
+                max-width: 380px;
+                min-width: 300px;
+                width: 100%;
+                grid-column: 1;
+                grid-row: 1 / 3;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="floatLayer"></div>
+
+<div class="ambient ambient-a"></div>
+<div class="ambient ambient-b"></div>
+
+<nav class="topnav">
+    <div class="nav-inner">
+        <a href="/" class="nav-logo">Muzip</a>
+        <div class="nav-links">
+            <button type="button" class="nav-btn" onclick="recommendRandomSong()">랜덤 추천 ♬</button>
+            <a th:if="${user == null}" href="/login" class="nav-btn">로그인</a>
+            <a th:if="${user != null}" href="/mypage" class="nav-btn">마이페이지</a>
+            <form th:if="${user != null}" th:action="@{/logout}" method="post" style="display:inline;">
+                <button type="submit" class="nav-btn">로그아웃</button>
+            </form></div>
+    </div>
+</nav>
+
+<main>
+    <div class="player-panel">
+
+        <div class="player-card" id="playerCard">
+            <div th:if="${not #lists.isEmpty(favorites)}" th:with="current=${favorites[0]}">
+                <div class="art-wrap">
+                    <img id="nowArt" th:src="${current.albumImg}" alt="album cover">
+                    <button class="heart-btn is-saved" id="nowHeart"
+                            th:attr="data-id=${current.songId}, data-title=${current.title}, data-artist=${current.artist}, data-img=${current.albumImg}, data-preview=${current.preview}"
+                            onclick="toggleHeart(this)">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 21s-7.2-4.6-9.8-9C.6 8.6 2 5 5.5 5c2 0 3.4 1.1 4.2 2.3.4.6 1.2 1.9 2.3 3.7 1.1-1.8 1.9-3.1 2.3-3.7C15.1 6.1 16.5 5 18.5 5 22 5 23.4 8.6 21.8 12c-2.6 4.4-9.8 9-9.8 9z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="now-title" id="nowTitle" th:text="${current.title}">제목</div>
+                <div class="now-artist" id="nowArtist" th:text="${current.artist}">아티스트</div>
+                <audio id="audioPlayer" preload="metadata" th:if="${current.preview != null}" th:src="${current.preview}"></audio>
+                <div class="player-controls">
+                    <button class="play-btn" id="playBtn" type="button" onclick="togglePlay()"
+                            th:disabled="${current.preview == null}">▶</button>
+                    <div class="fake-progress" id="progressBar" onclick="seekAudio(event)">
+                        <div class="fake-progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+                <div class="fake-time"><span id="curTime">0:00</span><span id="durTime">0:00</span></div>
+            </div>
+
+            <div th:if="${#lists.isEmpty(favorites)}" class="player-empty" id="playerEmpty">
+                아직 보관한 곡이 없어요.<br> 검색해서 담아보세요.
+            </div>
+        </div>
+
+        <div class="library-box">
+            <div class="library-title">🎧 보관함</div>
+            <div class="library-list" id="libraryList">
+                <div th:if="${#lists.isEmpty(favorites)}" class="library-empty">비어있음</div>
+                <div class="library-item" th:each="song : ${favorites}"
+                     th:attr="data-id=${song.songId}, data-title=${song.title}, data-artist=${song.artist}, data-img=${song.albumImg}, data-preview=${song.preview}"
+                     onclick="loadSaved(this)">
+                    <img th:src="${song.albumImg}" alt="cover">
+                    <div class="library-item-text">
+                        <div class="library-item-title" th:text="${song.title}">제목</div>
+                        <div class="library-item-artist" th:text="${song.artist}">아티스트</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="search-panel">
+        <div class="search-section">
+            <select id="categorySelect" class="search-select">
+                <option value="ALL">전체</option>
+                <option value="ARTIST">가수</option>
+                <option value="TITLE">제목</option>
+            </select>
+            <input type="text" id="keywordInput" class="search-input" placeholder="검색어를 입력하세요..."
+                   onkeypress="if(event.key === 'Enter') searchSongs()">
+            <button type="button" class="search-btn" onclick="searchSongs()">검색</button>
+        </div>
+
+        <div class="result-list" id="resultList">
+            <div class="empty-state">검색어를 입력해보세요.</div>
+        </div>
+    </div>
+    <!-- 오른쪽 아래: 게시판 최근 글 미리보기 -->
+    <!-- 오른쪽 아래: 게시판 -->
+    <div class="post-panel">
+        <div class="search-panel" style="height:100%;">
+            <div class="search-section" style="margin-bottom:14px;">
+                <input type="text" id="postKeywordInput" class="search-input" placeholder="게시글 검색..."
+                       onkeypress="if(event.key === 'Enter') searchPosts()">
+                <button type="button" class="search-btn" onclick="searchPosts()">검색</button>
+                <button type="button" class="search-btn" onclick="openWriteForm()">글쓰기</button>
+            </div>
+
+            <!-- 글쓰기 폼 (평소엔 숨김) -->
+            <div id="postWriteForm" style="display:none; margin-bottom:14px;">
+                <input type="text" id="postTitleInput" class="search-input" placeholder="제목"
+                       style="width:100%; margin-bottom:8px;">
+                <textarea id="postContentInput" class="search-input" placeholder="내용" rows="3"
+                          style="width:100%; resize:vertical; margin-bottom:8px;"></textarea>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="search-btn" onclick="submitPost()">등록</button>
+                    <button type="button" class="search-btn" style="background:var(--heart-off);"
+                            onclick="closeWriteForm()">취소
+                    </button>
+                </div>
+            </div>
+
+            <!-- 서버 렌더링 없이 페이지 로드 즉시 searchPosts() JS가 채움 -->
+            <div class="result-list" id="postResultList">
+                <div class="empty-state">게시글이 없습니다.</div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="footer">
+    <div class="footer-notes">
+        <span>🎵</span>
+        <span>🎶</span>
+        <span>🎧</span>
+        <span>🎵</span>
+    </div>
+    <div>Muzip — 음악과 함께</div>
+</footer>
+
+<script th:inline="javascript">
+    // 게시글 목록 페이지 크기 (서버의 PostService.DEFAULT_PAGE_SIZE와 동일하게 유지)
+    const POST_PAGE_SIZE = /*[[${postPageSize}]]*/ 10;
+
+    // =====================================================
+    // 1. 재생 카드 렌더링
+    //    - song 객체 하나로 통일해서 받음 (필드 누락 방지)
+    //    - songId 있으면 "이미 보관함에 저장된 곡" → 하트 활성(삭제용)
+    //    - songId 없으면 "검색만 한 곡" → 하트 비활성(저장용)
+    // =====================================================
+    function renderPlayerCard(song) {
+        const card = document.getElementById('playerCard');
+        const isSaved = !!song.songId;
+
+        const preview = song.preview || '';
+        card.innerHTML = `
+            <div class="art-wrap">
+                <img id="nowArt" src="${song.albumImg || ''}" alt="album cover">
+                <button class="heart-btn ${isSaved ? 'is-saved' : ''}" id="nowHeart"
+                        data-id="${song.songId || ''}"
+                        data-api-id="${song.apiSongId || ''}"
+                        data-title="${song.title}"
+                        data-artist="${song.artist}"
+                        data-img="${song.albumImg || ''}"
+                        data-preview="${preview}"
+                        onclick="toggleHeart(this)">
+                    <svg viewBox="0 0 24 24"><path d="M12 21s-7.2-4.6-9.8-9C.6 8.6 2 5 5.5 5c2 0 3.4 1.1 4.2 2.3.4.6 1.2 1.9 2.3 3.7 1.1-1.8 1.9-3.1 2.3-3.7C15.1 6.1 16.5 5 18.5 5 22 5 23.4 8.6 21.8 12c-2.6 4.4-9.8 9-9.8 9z"/></svg>
+                </button>
+            </div>
+            <div class="now-title">${song.title}</div>
+            <div class="now-artist">${song.artist}</div>
+            ${preview ? `<audio id="audioPlayer" preload="metadata" src="${preview}"></audio>` : ''}
+            <div class="player-controls">
+                <button class="play-btn" id="playBtn" type="button" onclick="togglePlay()" ${preview ? '' : 'disabled'}>▶</button>
+                <div class="fake-progress" id="progressBar" onclick="seekAudio(event)">
+                    <div class="fake-progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+            <div class="fake-time"><span id="curTime">0:00</span><span id="durTime">0:00</span></div>
+        `;
+        initAudioPlayer();
+    }
+
+    // 보관함 리스트 클릭 -> songId 있는 곡이므로 그대로 렌더링 (삭제용 하트)
+    function loadSaved(el) {
+        const d = el.dataset;
+        renderPlayerCard({songId: d.id, title: d.title, artist: d.artist, albumImg: d.img, preview: d.preview});
+    }
+
+    // 검색 결과 클릭 -> songId 없음, apiSongId만 있음 (저장용 하트)
+    function previewSong(song) {
+        renderPlayerCard({apiSongId: song.apiSongId, title: song.title, artist: song.artist, albumImg: song.albumImg, preview: song.preview});
+    }
+
+    // =====================================================
+    // 재생 (30초 미리듣기, Deezer preview URL 기반)
+    //    - 서버 컬럼/시간 정보 없이도 <audio>가 실제 파일 길이를 읽어서
+    //      progress bar/시간 표시를 정확히 맞춤 (loadedmetadata, timeupdate)
+    // =====================================================
+    function formatTime(sec) {
+        if (!isFinite(sec) || sec < 0) return '0:00';
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    // renderPlayerCard로 새 카드가 그려질 때마다 호출 -> 그 안의 <audio>에 이벤트 연결
+    function initAudioPlayer() {
+        const audio = document.getElementById('audioPlayer');
+        const playBtn = document.getElementById('playBtn');
+        const fill = document.getElementById('progressFill');
+        const curTime = document.getElementById('curTime');
+        const durTime = document.getElementById('durTime');
+        if (!audio || !playBtn) return;
+
+        audio.addEventListener('loadedmetadata', () => {
+            durTime.textContent = formatTime(audio.duration);
+        });
+        audio.addEventListener('timeupdate', () => {
+            curTime.textContent = formatTime(audio.currentTime);
+            if (audio.duration) {
+                fill.style.width = (audio.currentTime / audio.duration * 100) + '%';
+            }
+        });
+        audio.addEventListener('ended', () => {
+            playBtn.textContent = '▶';
+            fill.style.width = '0%';
+        });
+    }
+
+    // 재생/일시정지 토글
+    function togglePlay() {
+        const audio = document.getElementById('audioPlayer');
+        const playBtn = document.getElementById('playBtn');
+        if (!audio) return;
+
+        if (audio.paused) {
+            audio.play();
+            playBtn.textContent = '⏸';
+        } else {
+            audio.pause();
+            playBtn.textContent = '▶';
+        }
+    }
+
+    // 진행바 클릭 -> 그 위치로 재생 시점 이동
+    function seekAudio(event) {
+        const audio = document.getElementById('audioPlayer');
+        if (!audio || !audio.duration) return;
+
+        const bar = event.currentTarget;
+        const ratio = (event.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth;
+        audio.currentTime = ratio * audio.duration;
+    }
+
+    // 랜덤 곡 추천 함수
+    const RANDOM_KEYWORDS = [
+        '사랑', '봄', '밤', '너', '우리', '오늘', '바람', '꿈', '기억', '여름',
+        '이별', '그리움', '행복', '눈물', '별', '바다', '길', '시간', '노을', '겨울',
+        '가을', '비', '하늘', '고백', '처음', '마지막', '설렘', '위로', '청춘', '새벽'
+    ];
+
+
+    async function recommendRandomSong() {
+        const keyword = RANDOM_KEYWORDS[Math.floor(Math.random() * RANDOM_KEYWORDS.length)];
+
+        try {
+            const response = await fetch(`/api/song/search?keyword=${encodeURIComponent(keyword)}&category=ALL`);
+            const songs = await response.json();
+
+            if (songs.length === 0) {
+                alert('추천할 곡을 찾지 못했습니다. 다시 시도해주세요.');
+                return;
+            }
+
+            const randomSong = songs[Math.floor(Math.random() * songs.length)];
+            previewSong(randomSong);
+        } catch (error) {
+            console.error('랜덤 추천 중 오류:', error);
+            alert('추천 중 오류가 발생했습니다.');
+        }
+    }
+
+    // =====================================================
+    // 2. 하트 토글: songId 있으면 삭제, 없으면 저장
+    //    - apiId는 data-api-id에서 읽음 (기존엔 여기서 누락됐음)
+    // =====================================================
+    function toggleHeart(btn) {
+        const d = btn.dataset;
+        if (d.id) {
+            deleteSong(d.id);
+        } else {
+            addSong({title: d.title, artist: d.artist, albumImg: d.img, apiSongId: d.apiId, preview: d.preview});
+        }
+    }
+
+    // =====================================================
+    // 3. 곡 검색 (SongApiController 호출)
+    // =====================================================
+    async function searchSongs() {
+        const keyword = document.getElementById('keywordInput').value.trim();
+        const category = document.getElementById('categorySelect').value;
+
+        if (!keyword) {
+            alert('검색어를 입력해주세요!');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/song/search?keyword=${encodeURIComponent(keyword)}&category=${category}`);
+            const songs = await response.json();
+            renderSearchResults(songs);
+        } catch (error) {
+            console.error('검색 중 오류 발생:', error);
+            alert('검색 중 오류가 발생했습니다.');
+        }
+    }
+
+    // 검색어 비우면 결과 목록 초기 상태로 되돌림
+    function resetSongResults() {
+        document.getElementById('resultList').innerHTML =
+            `<div class="empty-state">검색어를 입력해보세요.</div>`;
+    }
+
+    // 검색 결과 목록을 화면에 그림 (행 클릭 = 미리보기, 하트 클릭 = 바로 저장)
+    function renderSearchResults(songs) {
+        const list = document.getElementById('resultList');
+        list.innerHTML = '';
+
+        if (songs.length === 0) {
+            list.innerHTML = `<div class="empty-state">검색 결과가 없습니다.</div>`;
+            return;
+        }
+
+        songs.forEach(song => {
+            const row = document.createElement('div');
+            row.className = 'result-row';
+            row.onclick = () => previewSong(song);
+            row.innerHTML = `
+                <img src="${song.albumImg || ''}" alt="cover">
+                <div class="result-text">
+                    <div class="result-title">${song.title}</div>
+                    <div class="result-artist">${song.artist}</div>
+                </div>
+                <button class="result-heart" type="button" title="보관함에 담기">
+                    <svg viewBox="0 0 24 24"><path d="M12 21s-7.2-4.6-9.8-9C.6 8.6 2 5 5.5 5c2 0 3.4 1.1 4.2 2.3.4.6 1.2 1.9 2.3 3.7 1.1-1.8 1.9-3.1 2.3-3.7C15.1 6.1 16.5 5 18.5 5 22 5 23.4 8.6 21.8 12c-2.6 4.4-9.8 9-9.8 9z"/></svg>
+                </button>
+            `;
+            // 하트 클릭은 행 클릭(previewSong)과 분리 -> 이벤트 버블링 차단
+            row.querySelector('.result-heart').onclick = (e) => {
+                e.stopPropagation();
+                addSong(song);
+            };
+            list.appendChild(row);
+        });
+    }
+
+    // =====================================================
+    // 4. 보관함 추가/삭제
+    //    - song 객체 필드명이 서버 Song 도메인 필드명과 그대로 일치해야 함
+    //      (title, artist, albumImg, apiSongId)
+    // =====================================================
+    function addSong(song) {
+        submitForm('/add', song);
+    }
+
+    function deleteSong(songId) {
+        submitForm(`/delete/${songId}`, {});
+    }
+
+    // hidden input으로 구성된 form 생성 후 즉시 제출 (페이지 새로고침 방식)
+    function submitForm(action, fields) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = action;
+
+        for (const key in fields) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = fields[key] ?? '';
+            form.appendChild(input);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // =====================================================
+    // 5. 게시글 검색/작성 (PostController 호출)
+    // =====================================================
+
+    let currentPostPage = 1;
+    async function searchPosts(page = 1) {
+        const keyword = document.getElementById('postKeywordInput').value.trim();
+        currentPostPage = page;
+
+        try {
+            const response = await fetch(`/api/post?keyword=${encodeURIComponent(keyword)}&page=${page}&size=${POST_PAGE_SIZE}`);
+            const pageData = await response.json();
+            renderPostResults(pageData);
+        } catch (error) {
+            console.error('게시글 검색 중 오류:', error);
+            alert('검색 중 오류가 발생했습니다.');
+        }
+    }
+
+    function renderPostResults(pageData) {
+        const list = document.getElementById('postResultList');
+        list.innerHTML = '';
+
+        const posts = pageData.content;
+
+        if (posts.length === 0) {
+            list.innerHTML = `<div class="empty-state">게시글이 없습니다.</div>`;
+            return;
+        }
+
+        posts.forEach(post => {
+            const row = document.createElement('a');
+            row.className = 'result-row';
+            row.href = `/post/${post.postId}`;
+            row.style.textDecoration = 'none';
+            row.style.color = 'inherit';
+            row.innerHTML = `
+            <div class="result-text">
+                <div class="result-title">${post.title}</div>
+                <div class="result-artist">${post.writer}</div>
+            </div>
+        `;
+            list.appendChild(row);
+        });
+
+        // 페이지 이동 버튼 추가
+        const pager = document.createElement('div');
+        pager.style.cssText = 'display:flex; justify-content:center; gap:10px; margin-top:12px;';
+        pager.innerHTML = `
+        <button type="button" class="search-btn" style="padding:6px 16px;"
+            ${pageData.page <= 1 ? 'disabled' : ''}
+            onclick="searchPosts(${pageData.page - 1})">이전</button>
+        <span style="align-self:center; font-size:0.85rem; color:var(--ink-muted);">
+            ${pageData.page} / ${pageData.totalPages || 1}
+        </span>
+        <button type="button" class="search-btn" style="padding:6px 16px;"
+            ${pageData.page >= pageData.totalPages ? 'disabled' : ''}
+            onclick="searchPosts(${pageData.page + 1})">다음</button>
+    `;
+        list.appendChild(pager);
+    }
+
+    function openWriteForm() {
+        document.getElementById('postWriteForm').style.display = 'block';
+    }
+
+    function closeWriteForm() {
+        document.getElementById('postWriteForm').style.display = 'none';
+        document.getElementById('postTitleInput').value = '';
+        document.getElementById('postContentInput').value = '';
+    }
+
+    async function submitPost() {
+        const title = document.getElementById('postTitleInput').value.trim();
+        const content = document.getElementById('postContentInput').value.trim();
+
+        if (!title || !content) {
+            alert('제목과 내용을 입력해주세요!');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/post', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({title, content})
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                alert(err.message || '등록에 실패했습니다.');
+                return;
+            }
+
+            closeWriteForm();
+            searchPosts(); // 목록 새로고침
+        } catch (error) {
+            console.error('게시글 등록 중 오류:', error);
+            alert('등록 중 오류가 발생했습니다.');
+        }
+
+
+    }
+
+    window.addEventListener('DOMContentLoaded', () => searchPosts());
+    window.addEventListener('DOMContentLoaded', initAudioPlayer); // 서버 렌더링된 초기 재생 카드에도 이벤트 연결
+    document.getElementById('keywordInput').addEventListener('input', () => {
+        const keyword = document.getElementById('keywordInput').value.trim();
+        if (keyword.length === 0) {
+            resetSongResults();
+        }
+    });
+
+
+    // 배경 부유 오브젝트: 물방울 + 전자기기 아이콘, 마우스 접근 시 회피
+    const FLOAT_ICONS = [
+        `<svg viewBox="0 0 24 24" width="60" height="60"><path fill="#5fd0e8" d="M12 2c4 5.5 7 9.6 7 13a7 7 0 1 1-14 0c0-3.4 3-7.5 7-13z"/></svg>`,
+        `<svg viewBox="0 0 24 24" width="42" height="42"><path fill="#8ce0f0" d="M12 2c4 5.5 7 9.6 7 13a7 7 0 1 1-14 0c0-3.4 3-7.5 7-13z"/></svg>`,
+        `<svg viewBox="0 0 24 24" width="56" height="56"><rect x="2" y="4" width="20" height="13" rx="2" fill="#6fb8e6"/><rect x="9" y="19" width="6" height="2" fill="#6fb8e6"/></svg>`,
+        `<svg viewBox="0 0 24 24" width="52" height="52"><path fill="#7fd6c9" d="M12 3a8 8 0 0 0-8 8v6a2 2 0 0 0 2 2h2v-7H6v-1a6 6 0 0 1 12 0v1h-2v7h2a2 2 0 0 0 2-2v-6a8 8 0 0 0-8-8z"/></svg>`,
+        `<svg viewBox="0 0 24 24" width="38" height="48"><rect x="6" y="2" width="12" height="20" rx="2" fill="#a3c9ec"/></svg>`
+    ];
+
+    function initFloatingObjects() {
+        const layer = document.getElementById('floatLayer');
+        if (!layer) return;
+
+        const objects = [];
+        const count = 9;
+
+        for (let i = 0; i < count; i++) {
+            const el = document.createElement('div');
+            el.className = 'float-obj';
+            el.innerHTML = FLOAT_ICONS[i % FLOAT_ICONS.length];
+
+            const baseX = Math.random() * window.innerWidth;
+            const baseY = Math.random() * window.innerHeight;
+            const duration = 6 + Math.random() * 6;
+
+            el.style.left = baseX + 'px';
+            el.style.top = baseY + 'px';
+            el.style.animationDuration = duration + 's';
+            el.style.animationDelay = (-Math.random() * duration) + 's';
+
+            layer.appendChild(el);
+            objects.push({ el, baseX, baseY, offsetX: 0, offsetY: 0 });
+        }
+
+        let mouseX = -9999, mouseY = -9999;
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        const AVOID_RADIUS = 170;
+
+        function animate() {
+            objects.forEach(obj => {
+                const rect = obj.el.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+
+                const dx = cx - mouseX;
+                const dy = cy - mouseY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                let pushX = 0, pushY = 0;
+                if (dist < AVOID_RADIUS) {
+                    const strength = (AVOID_RADIUS - dist) / AVOID_RADIUS;
+                    const angle = Math.atan2(dy, dx);
+                    pushX = Math.cos(angle) * strength * 60;
+                    pushY = Math.sin(angle) * strength * 60;
+                }
+
+                // 부드럽게 목표 위치로 이동 (관성 느낌)
+                obj.offsetX += (pushX - obj.offsetX) * 0.15;
+                obj.offsetY += (pushY - obj.offsetY) * 0.15;
+
+                obj.el.style.marginLeft = obj.offsetX + 'px';
+                obj.el.style.marginTop = obj.offsetY + 'px';
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
+    }
+
+    window.addEventListener('DOMContentLoaded', initFloatingObjects);
+</script>
+</body>
+</html>

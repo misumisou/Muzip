@@ -1,0 +1,8 @@
+# 로컬 개발용 DB 접속 설정. username/password는 .env(DB_USERNAME, DB_PASSWORD)에서 주입
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/muzipdb?serverTimezone=Asia/Seoul
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+

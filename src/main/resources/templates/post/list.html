@@ -1,0 +1,147 @@
+<!-- 게시글 목록 페이지: 최신순 10건을 서버에서 렌더링 -->
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>게시글 목록 - Muzip</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-top: #7ec8f2;
+            --bg-bottom: #d6f3e6;
+            --surface: rgba(255, 255, 255, 0.32);
+            --surface-strong: rgba(255, 255, 255, 0.42);
+            --border: rgba(255, 255, 255, 0.55);
+            --ink: #0b3456;
+            --ink-muted: #4d7292;
+            --cyan: #00aaff;
+            --aero-shadow: 0 10px 35px rgba(0, 60, 120, 0.25);
+            --aero-inner-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.65);
+            --aero-highlight: rgba(255, 255, 255, 0.75);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            background:
+                    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 55%),
+                    linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+            color: var(--ink);
+            font-family: 'Noto Sans KR', sans-serif;
+            overflow-x: hidden;
+        }
+
+        nav.topnav {
+            position: sticky;
+            top: 16px;
+            z-index: 10;
+            max-width: 780px;
+            margin: 16px auto 0;
+            padding: 0 20px;
+        }
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border);
+            border-top: 1.5px solid var(--aero-highlight);
+            border-radius: 24px;
+            padding: 12px 22px;
+            box-shadow: var(--aero-shadow), var(--aero-inner-shadow);
+        }
+        .nav-logo {
+            font-family: 'Baloo 2', sans-serif;
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--ink);
+            text-decoration: none;
+        }
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: var(--ink-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            font-family: 'Noto Sans KR', sans-serif;
+            padding: 8px 16px;
+            border-radius: 14px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        main {
+            position: relative;
+            z-index: 1;
+            max-width: 780px;
+            margin: 36px auto 100px;
+            padding: 0 20px;
+        }
+
+        .list-card {
+            background: var(--surface-strong);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border);
+            border-top: 1.5px solid var(--aero-highlight);
+            border-radius: 28px;
+            padding: 12px;
+            box-shadow: var(--aero-shadow), var(--aero-inner-shadow);
+        }
+
+        .post-row {
+            display: block;
+            padding: 16px 18px;
+            border-radius: 18px;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.15s ease;
+        }
+        .post-row:hover { background: rgba(255, 255, 255, 0.35); }
+
+        .post-row-title {
+            font-weight: 600;
+            font-size: 0.98rem;
+            margin-bottom: 4px;
+        }
+        .post-row-meta {
+            font-size: 0.8rem;
+            color: var(--ink-muted);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--ink-muted);
+            padding: 40px 0;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="topnav">
+    <div class="nav-inner">
+        <a href="/" class="nav-logo">Muzip</a>
+        <a href="/" class="nav-btn">홈으로</a>
+    </div>
+</nav>
+
+<main>
+    <div class="list-card">
+        <div th:if="${#lists.isEmpty(posts)}" class="empty-state">게시글이 없습니다.</div>
+        <a class="post-row" th:each="post : ${posts}" th:href="@{'/post/' + ${post.postId}}">
+            <div class="post-row-title" th:text="${post.title}">제목</div>
+            <div class="post-row-meta">
+                <span th:text="${post.writer}">작성자</span> · <span th:text="${post.createdAt}">작성일</span>
+            </div>
+        </a>
+    </div>
+</main>
+
+</body>
+</html>

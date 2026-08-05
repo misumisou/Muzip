@@ -1,0 +1,307 @@
+<!-- 게시글 상세 페이지: 조회, 수정(인라인 폼 전환), 삭제 기능 제공 -->
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${post.title} + ' - Muzip'">게시글 상세 - Muzip</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-top: #7ec8f2;
+            --bg-bottom: #d6f3e6;
+            --surface: rgba(255, 255, 255, 0.32);
+            --surface-strong: rgba(255, 255, 255, 0.42);
+            --border: rgba(255, 255, 255, 0.55);
+            --ink: #0b3456;
+            --ink-muted: #4d7292;
+            --cyan: #00aaff;
+            --blue: #00d4ff;
+            --danger: #ff2f92;
+            --aero-shadow: 0 10px 35px rgba(0, 60, 120, 0.25);
+            --aero-inner-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.65);
+            --aero-highlight: rgba(255, 255, 255, 0.75);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            background:
+                    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 55%),
+                    linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+            color: var(--ink);
+            font-family: 'Noto Sans KR', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .ambient {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.45;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .ambient-a { width: 460px; height: 460px; background: var(--cyan); top: -180px; left: -120px; }
+        .ambient-b { width: 380px; height: 380px; background: #39d353; bottom: -160px; right: -100px; }
+
+        nav.topnav {
+            position: sticky;
+            top: 16px;
+            z-index: 10;
+            max-width: 780px;
+            margin: 16px auto 0;
+            padding: 0 20px;
+        }
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border);
+            border-top: 1.5px solid var(--aero-highlight);
+            border-radius: 24px;
+            padding: 12px 22px;
+            box-shadow: var(--aero-shadow), var(--aero-inner-shadow);
+        }
+        .nav-logo {
+            font-family: 'Baloo 2', sans-serif;
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--ink);
+            letter-spacing: -0.5px;
+            text-decoration: none;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7), 0 0 10px rgba(0, 170, 255, 0.25);
+        }
+        .nav-links { display: flex; gap: 8px; }
+        .nav-links a {
+            text-decoration: none;
+            color: var(--ink-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            border-radius: 14px;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .nav-links a:hover { background: rgba(0, 170, 255, 0.18); color: var(--ink); }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: var(--ink-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            font-family: 'Noto Sans KR', sans-serif;
+            padding: 8px 16px;
+            border-radius: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5);
+        }
+        .nav-btn:hover {
+            background: rgba(0, 170, 255, 0.22);
+            color: var(--ink);
+            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.7), 0 0 8px rgba(0, 170, 255, 0.25);
+        }
+
+        main {
+            position: relative;
+            z-index: 1;
+            max-width: 780px;
+            margin: 36px auto 100px;
+            padding: 0 20px;
+        }
+
+        .post-card {
+            background: var(--surface-strong);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border);
+            border-top: 1.5px solid var(--aero-highlight);
+            border-left: 1.5px solid var(--aero-highlight);
+            border-radius: 28px;
+            padding: 32px;
+            box-shadow: var(--aero-shadow), var(--aero-inner-shadow);
+        }
+
+        .post-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            word-break: break-word;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 12px;
+            color: var(--ink-muted);
+            font-size: 0.85rem;
+            padding-bottom: 18px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .post-content {
+            font-size: 0.98rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+            min-height: 120px;
+            margin-bottom: 28px;
+        }
+
+        .post-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            padding: 10px 22px;
+            font-weight: 700;
+            font-size: 0.86rem;
+            border-radius: 14px;
+            font-family: 'Noto Sans KR', sans-serif;
+            transition: transform 0.1s ease, box-shadow 0.2s ease, opacity 0.15s ease;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn:active { transform: scale(0.98); }
+        .btn-list {
+            background: rgba(255, 255, 255, 0.28);
+            color: var(--ink-muted);
+            border: 1px solid var(--border);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5);
+        }
+        .btn-danger {
+            border: 1px solid #99005a;
+            border-top: 1.5px solid #ffb3d9;
+            background: linear-gradient(to bottom, #ff6fc0 0%, #ff2f92 50%, #d1006e 100%);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(255, 47, 146, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+            text-shadow: 0 -1px 1px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+<div class="ambient ambient-a"></div>
+<div class="ambient ambient-b"></div>
+
+<nav class="topnav">
+    <div class="nav-inner">
+        <a href="/" class="nav-logo">Muzip</a>
+        <div class="nav-links">
+            <a th:if="${user == null}" href="/login" class="nav-btn">로그인</a>
+            <form th:if="${user != null}" th:action="@{/logout}" method="post" style="display:inline;">
+                <button type="submit" class="nav-btn">로그아웃</button>
+            </form>
+        </div>
+    </div>
+</nav>
+
+<main>
+    <div class="post-card" th:attr="data-id=${post.postId}">
+        <div id="viewMode">
+            <div class="post-title" id="viewTitle" th:text="${post.title}">제목</div>
+            <div class="post-meta">
+                <span th:text="${post.writer}">작성자</span>
+                <span th:text="${post.createdAt}">작성일</span>
+            </div>
+            <div class="post-content" id="viewContent" th:text="${post.content}">내용</div>
+            <div class="post-actions">
+                <button type="button" class="btn btn-list" onclick="location.href='/'">목록</button>
+                <button type="button" class="btn btn-list" onclick="enterEditMode()">수정</button>
+                <button type="button" class="btn btn-danger"
+                        th:attr="data-id=${post.postId}" onclick="deletePost(this)">삭제</button>
+            </div>
+        </div>
+
+        <div id="editMode" style="display:none;">
+            <input type="text" id="editTitleInput" class="search-input" style="width:100%; margin-bottom:12px;"
+                   th:value="${post.title}">
+            <textarea id="editContentInput" class="search-input" rows="6"
+                      style="width:100%; resize:vertical; margin-bottom:12px;"
+                      th:text="${post.content}"></textarea>
+            <div class="post-actions">
+                <button type="button" class="btn btn-list" onclick="cancelEditMode()">취소</button>
+                <button type="button" class="btn btn-danger" onclick="submitEditPost()">저장</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    // 삭제 버튼 클릭 -> 확인 후 DELETE 요청, 성공 시 메인으로 이동
+    async function deletePost(btn) {
+        const postId = btn.dataset.id;
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+
+        try {
+            const response = await fetch(`/api/post/${postId}`, { method: 'DELETE' });
+            if (!response.ok) {
+                const err = await response.json();
+                alert(err.message || '삭제에 실패했습니다.');
+                return;
+            }
+            location.href = '/';
+        } catch (error) {
+            console.error('삭제 중 오류:', error);
+            alert('삭제 중 오류가 발생했습니다.');
+        }
+    }
+
+    // 조회 화면 -> 수정 폼으로 전환
+    function enterEditMode() {
+        document.getElementById('viewMode').style.display = 'none';
+        document.getElementById('editMode').style.display = 'block';
+    }
+
+    // 수정 취소 -> 조회 화면으로 복귀
+    function cancelEditMode() {
+        document.getElementById('viewMode').style.display = 'block';
+        document.getElementById('editMode').style.display = 'none';
+    }
+
+    // 저장 버튼 클릭 -> PUT 요청으로 수정 반영 후 새로고침
+    async function submitEditPost() {
+        const postId = document.querySelector('.post-card').dataset.id;
+        const title = document.getElementById('editTitleInput').value.trim();
+        const content = document.getElementById('editContentInput').value.trim();
+
+        if (!title || !content) {
+            alert('제목과 내용을 입력해주세요!');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/post/${postId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, content })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                alert(err.message || '수정에 실패했습니다.');
+                return;
+            }
+
+            location.reload();
+        } catch (error) {
+            console.error('게시글 수정 중 오류:', error);
+            alert('수정 중 오류가 발생했습니다.');
+        }
+    }
+</script>
+</body>
+</html>

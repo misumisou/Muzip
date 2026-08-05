@@ -1,0 +1,349 @@
+<!-- 마이페이지: 닉네임/가입 경과일, 보관함, 내가 쓴 글, 회원 탈퇴 -->
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Muzip - 마이페이지</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-top: #7ec8f2;
+            --bg-bottom: #d6f3e6;
+            --surface: rgba(255, 255, 255, 0.32);
+            --surface-strong: rgba(255, 255, 255, 0.42);
+            --border: rgba(255, 255, 255, 0.55);
+            --ink: #0b3456;
+            --ink-muted: #4d7292;
+            --cyan: #00aaff;
+            --danger: #ff2f92;
+            --aero-shadow: 0 10px 35px rgba(0, 60, 120, 0.25);
+            --aero-inner-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.65);
+            --aero-highlight: rgba(255, 255, 255, 0.75);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            background:
+                    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 55%),
+                    linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+            color: var(--ink);
+            font-family: 'Noto Sans KR', sans-serif;
+            overflow-x: hidden;
+        }
+
+        nav.topnav {
+            position: sticky;
+            top: 16px;
+            z-index: 10;
+            max-width: 780px;
+            margin: 16px auto 0;
+            padding: 0 20px;
+        }
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border);
+            border-top: 1.5px solid var(--aero-highlight);
+            border-radius: 24px;
+            padding: 12px 22px;
+            box-shadow: var(--aero-shadow), var(--aero-inner-shadow);
+        }
+        .nav-logo {
+            font-family: 'Baloo 2', sans-serif;
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--ink);
+            text-decoration: none;
+        }
+        .nav-links { display: flex; gap: 8px; }
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: var(--ink-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            font-family: 'Noto Sans KR', sans-serif;
+            padding: 8px 16px;
+            border-radius: 14px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        main {
+            position: relative;
+            z-index: 1;
+            max-width: 780px;
+            margin: 36px auto 100px;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--surface-strong);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border);
+            border-top: 1.5px solid var(--aero-highlight);
+            border-left: 1.5px solid var(--aero-highlight);
+            border-radius: 28px;
+            padding: 26px 28px;
+            box-shadow: var(--aero-shadow), var(--aero-inner-shadow);
+        }
+
+        .profile-nickname {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .profile-days {
+            color: var(--ink-muted);
+            font-size: 0.9rem;
+        }
+
+        .edit-btn {
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid var(--border);
+            color: var(--ink-muted);
+            font-weight: 600;
+            font-size: 0.76rem;
+            font-family: 'Noto Sans KR', sans-serif;
+            padding: 4px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+        .edit-btn:hover { background: rgba(255, 255, 255, 0.5); color: var(--ink); }
+
+        .nickname-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 10px 14px;
+            font-size: 1rem;
+            color: var(--ink);
+            font-family: 'Noto Sans KR', sans-serif;
+            outline: none;
+            margin-bottom: 10px;
+            box-shadow: inset 0 1px 2px rgba(0, 60, 120, 0.08);
+        }
+        .nickname-input:focus {
+            border-color: var(--cyan);
+            box-shadow: inset 0 1px 2px rgba(0, 60, 120, 0.08), 0 0 8px rgba(0, 170, 255, 0.3);
+        }
+
+        .nickname-edit-actions { display: flex; gap: 8px; justify-content: flex-end; }
+        .btn {
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            padding: 9px 20px;
+            font-weight: 700;
+            font-size: 0.84rem;
+            border-radius: 14px;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .btn-list {
+            background: rgba(255, 255, 255, 0.28);
+            color: var(--ink-muted);
+            border: 1px solid var(--border);
+        }
+        .btn-primary {
+            border: 1px solid #005588;
+            border-top: 1.5px solid #a3e8ff;
+            background: linear-gradient(to bottom, #4cd3ff 0%, #0088cc 50%, #0066aa 100%);
+            color: #fff;
+            text-shadow: 0 -1px 1px rgba(0, 0, 0, 0.2);
+        }
+
+        .nickname-error {
+            background: rgba(255, 47, 146, 0.14);
+            border: 1px solid rgba(255, 47, 146, 0.35);
+            color: var(--danger);
+            font-size: 0.78rem;
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+        }
+
+        .section-title {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: var(--ink-muted);
+            letter-spacing: 0.3px;
+            margin-bottom: 12px;
+            padding-left: 2px;
+        }
+
+        .row-list { display: flex; flex-direction: column; gap: 4px; }
+        .row-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-radius: 16px;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.15s ease;
+        }
+        .row-item:hover { background: rgba(255, 255, 255, 0.35); }
+        .row-item img {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .row-text { min-width: 0; flex: 1; }
+        .row-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .row-sub {
+            font-size: 0.78rem;
+            color: var(--ink-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--ink-muted);
+            padding: 24px 0;
+            font-size: 0.86rem;
+        }
+
+        .withdraw-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .withdraw-desc {
+            font-size: 0.82rem;
+            color: var(--ink-muted);
+            line-height: 1.5;
+        }
+        .btn-danger {
+            border: 1px solid #99005a;
+            border-top: 1.5px solid #ffb3d9;
+            background: linear-gradient(to bottom, #ff6fc0 0%, #ff2f92 50%, #d1006e 100%);
+            color: #fff;
+            cursor: pointer;
+            padding: 10px 22px;
+            font-weight: 700;
+            font-size: 0.86rem;
+            border-radius: 14px;
+            font-family: 'Noto Sans KR', sans-serif;
+            flex-shrink: 0;
+            box-shadow: 0 4px 15px rgba(255, 47, 146, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+            text-shadow: 0 -1px 1px rgba(0, 0, 0, 0.2);
+        }
+        .btn-danger:hover { opacity: 0.92; }
+    </style>
+</head>
+<body>
+
+<nav class="topnav">
+    <div class="nav-inner">
+        <a href="/" class="nav-logo">Muzip</a>
+        <div class="nav-links">
+            <a href="/" class="nav-btn">홈으로</a>
+        </div>
+    </div>
+</nav>
+
+<main>
+
+    <div class="card">
+        <div id="nicknameView">
+            <div class="profile-nickname">
+                <span th:text="${nickname}">닉네임</span>
+                <button type="button" class="edit-btn" onclick="enterNicknameEdit()">수정</button>
+            </div>
+            <div class="profile-days" th:if="${daysSinceJoin != null}">가입한 지 <strong th:text="${daysSinceJoin}">0</strong>일째</div>
+            <div class="profile-days" th:if="${daysSinceJoin == null}">가입일 정보 없음</div>
+        </div>
+
+        <form id="nicknameEditForm" th:action="@{/mypage/nickname}" method="post" style="display:none;">
+            <div th:if="${nicknameError}" class="nickname-error" th:text="${nicknameError}"></div>
+            <input type="text" name="nickname" id="nicknameInput" class="nickname-input"
+                   th:value="${nickname}" maxlength="20" required>
+            <div class="nickname-edit-actions">
+                <button type="button" class="btn btn-list" onclick="cancelNicknameEdit()">취소</button>
+                <button type="submit" class="btn btn-primary">저장</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="section-title">🎧 보관함 (<span th:text="${#lists.size(favorites)}">0</span>)</div>
+        <div class="row-list">
+            <div th:if="${#lists.isEmpty(favorites)}" class="empty-state">아직 보관한 곡이 없어요.</div>
+            <div class="row-item" th:each="song : ${favorites}">
+                <img th:src="${song.albumImg}" alt="cover">
+                <div class="row-text">
+                    <div class="row-title" th:text="${song.title}">제목</div>
+                    <div class="row-sub" th:text="${song.artist}">아티스트</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="section-title">✏️ 내가 쓴 글 (<span th:text="${#lists.size(myPosts)}">0</span>)</div>
+        <div class="row-list">
+            <div th:if="${#lists.isEmpty(myPosts)}" class="empty-state">아직 작성한 글이 없어요.</div>
+            <a class="row-item" th:each="post : ${myPosts}" th:href="@{'/post/' + ${post.postId}}">
+                <div class="row-text">
+                    <div class="row-title" th:text="${post.title}">제목</div>
+                    <div class="row-sub" th:text="${post.createdAt}">작성일</div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="card withdraw-card">
+        <div class="withdraw-desc">
+            탈퇴 시 보관함과 작성한 글이 모두 삭제되며,<br>이 작업은 되돌릴 수 없습니다.
+        </div>
+        <form th:action="@{/mypage/withdraw}" method="post"
+              onsubmit="return confirm('정말 탈퇴하시겠습니까?\n보관함과 작성한 글이 모두 삭제됩니다.');">
+            <button type="submit" class="btn-danger">회원 탈퇴</button>
+        </form>
+    </div>
+
+</main>
+
+<script>
+    // 닉네임 조회 화면 -> 수정 폼으로 전환
+    function enterNicknameEdit() {
+        document.getElementById('nicknameView').style.display = 'none';
+        document.getElementById('nicknameEditForm').style.display = 'block';
+        document.getElementById('nicknameInput').focus();
+    }
+
+    // 수정 취소 -> 조회 화면으로 복귀
+    function cancelNicknameEdit() {
+        document.getElementById('nicknameView').style.display = 'block';
+        document.getElementById('nicknameEditForm').style.display = 'none';
+    }
+</script>
+
+</body>
+</html>

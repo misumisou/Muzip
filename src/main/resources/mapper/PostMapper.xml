@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 게시글(posts) 테이블 CRUD 쿼리 -->
+<mapper namespace="com.example.muzip.mapper.PostMapper">
+
+    <!-- 검색 + 페이징 목록 조회 -->
+
+    <select id="findPost" resultType="Post">
+        select post_id, title, content, writer, created_at, updated_at
+        from posts
+        <where>
+            <if test="keyword != null and keyword != ''">
+                (title like concat('%', #{keyword}, '%'))
+            </if>
+        </where>
+        order by created_at desc
+        limit #{size} offset #{offset}
+    </select>
+
+    <!-- 검색 조건 맞는 전체 개수 (페이징 계산용) -->
+    <select id="countPost" resultType="long">
+        select count(*)
+        from posts
+        <where>
+            <if test="keyword != null and keyword != ''">
+                (title like concat('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <!-- 단건 조회 -->
+    <select id="findPostById" resultType="Post">
+        select post_id, title, content, writer, created_at, updated_at, user_id
+        from posts
+        where post_id=#{postId}
+    </select>
+
+    <!-- 작성 -->
+    <insert id="insertPost" parameterType="Post" useGeneratedKeys="true" keyProperty="postId">
+        INSERT INTO posts (title, content, writer, user_id, song_id, created_at, updated_at)
+        VALUES (#{title}, #{content}, #{writer}, #{userId}, #{songId}, current_timestamp, current_timestamp)
+    </insert>
+
+    <!-- 수정 -->
+    <update id="updatePost" parameterType="Post">
+        update posts
+        set title = #{title},
+            content = #{content},
+            updated_at = current_timestamp
+        where post_id = #{postId}
+    </update>
+
+    <!-- 삭제 -->
+    <delete id="deletePost">
+        delete from posts where post_id=#{postId}
+    </delete>
+
+    <!-- 마이페이지: 특정 유저가 쓴 글 목록 -->
+    <select id="findPostsByUserId" resultType="Post">
+        select post_id, title, content, writer, created_at, updated_at, user_id
+        from posts
+        where user_id=#{userId}
+        order by created_at desc
+    </select>
+
+    <!-- 회원 탈퇴 시 작성 글 전체 삭제 -->
+    <delete id="deleteAllPostsByUserId" parameterType="Integer">
+        delete from posts where user_id=#{userId}
+    </delete>
+
+</mapper>
